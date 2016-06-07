@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>821</width>
+    <height>802</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Linguistica 6</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <widget class="QSplitter" name="splitter_2">
+    <property name="geometry">
+     <rect>
+      <x>0</x>
+      <y>40</y>
+      <width>811</width>
+      <height>711</height>
+     </rect>
+    </property>
+    <property name="sizePolicy">
+     <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+      <horstretch>0</horstretch>
+      <verstretch>0</verstretch>
+     </sizepolicy>
+    </property>
+    <property name="frameShape">
+     <enum>QFrame::StyledPanel</enum>
+    </property>
+    <property name="orientation">
+     <enum>Qt::Vertical</enum>
+    </property>
+    <widget class="QSplitter" name="splitter">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <widget class="QTreeView" name="treeView"/>
+     <widget class="QTableView" name="tableView"/>
+     <widget class="QColumnView" name="columnView"/>
+    </widget>
+    <widget class="QTextBrowser" name="textBrowser"/>
+   </widget>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>821</width>
+     <height>25</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuFile">
+    <property name="title">
+     <string>File</string>
+    </property>
+    <addaction name="actionRead_dx1_file"/>
+    <addaction name="actionRead_corpus"/>
+    <addaction name="actionOpen_project"/>
+    <addaction name="actionSave_project"/>
+   </widget>
+   <widget class="QMenu" name="menuEdit">
+    <property name="title">
+     <string>Edit</string>
+    </property>
+    <addaction name="actionClear_lexicon"/>
+   </widget>
+   <widget class="QMenu" name="menuView">
+    <property name="title">
+     <string>View</string>
+    </property>
+   </widget>
+   <widget class="QMenu" name="menuSuffixes">
+    <property name="title">
+     <string>Suffixes</string>
+    </property>
+    <addaction name="actionFind_suffixes"/>
+   </widget>
+   <widget class="QMenu" name="menuPrefixes">
+    <property name="title">
+     <string>Prefixes</string>
+    </property>
+    <addaction name="actionFind_prefixes"/>
+   </widget>
+   <widget class="QMenu" name="menuCompounds">
+    <property name="title">
+     <string>Compounds</string>
+    </property>
+   </widget>
+   <widget class="QMenu" name="menuLogfile">
+    <property name="title">
+     <string>Logfile</string>
+    </property>
+   </widget>
+   <addaction name="menuFile"/>
+   <addaction name="menuEdit"/>
+   <addaction name="menuView"/>
+   <addaction name="menuSuffixes"/>
+   <addaction name="menuPrefixes"/>
+   <addaction name="menuCompounds"/>
+   <addaction name="menuLogfile"/>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <action name="actionRead_dx1_file">
+   <property name="text">
+    <string>Read dx1 file</string>
+   </property>
+  </action>
+  <action name="actionRead_corpus">
+   <property name="text">
+    <string>Read corpus</string>
+   </property>
+  </action>
+  <action name="actionOpen_project">
+   <property name="text">
+    <string>Open project</string>
+   </property>
+  </action>
+  <action name="actionSave_project">
+   <property name="text">
+    <string>Save project</string>
+   </property>
+  </action>
+  <action name="actionClear_lexicon">
+   <property name="text">
+    <string>Clear lexicon</string>
+   </property>
+  </action>
+  <action name="actionFind_suffixes">
+   <property name="text">
+    <string>Find suffixes</string>
+   </property>
+  </action>
+  <action name="actionFind_prefixes">
+   <property name="text">
+    <string>Find prefixes</string>
+   </property>
+  </action>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

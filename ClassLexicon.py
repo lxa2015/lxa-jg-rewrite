@@ -1,0 +1,176 @@
+# This is just part of documentation:
+# A signature is a tuple of strings (each an affix).
+# Signatures is a map: its keys are signatures.  Its values are *sets* of stems.
+# StemToWord is a map; its keys are stems.       Its values are *sets* of words.
+# StemToSig  is a map; its keys are stems.       Its values are individual signatures.
+# WordToSig  is a Map. its keys are words.       Its values are *lists* of signatures.
+# StemCounts is a map. Its keys are words. 	 Its values are corpus counts of stems.
+# SignatureToStems is a dict: its keys are tuples of strings, and its values are dicts of stems.
+
+class CWordList:
+    def __init__(self):
+        self.mylist = list()
+        print
+        "initializing the wordlist"
+
+    def AddWord(self, word):
+        self.mylist.append(Word(word))
+
+    def at(self, n):
+        return self.mylist[n]
+
+    def sort(self):
+        self.mylist.sort(key=lambda item: item.Key)
+        # for item in self.mylist:
+        #	print item.Key
+        for i in range(len(self.mylist)):
+            word = self.mylist[i]
+            word.leftindex = i
+        templist = list()
+        for word in self.mylist:
+            thispair = (word.Key[::-1], word.leftindex)
+            templist.append(thispair)
+        templist.sort(key=lambda item: item[0])
+        for i in range(len(self.mylist)):
+            (drow, leftindex) = templist[i]
+            self.mylist[leftindex].rightindex = i
+
+    def PrintXY(self, outfile):
+        Size = float(len(self.mylist))
+        for word in self.mylist:
+            x = word.leftindex / Size
+            y = word.rightindex / Size
+            print >> outfile, "{:20s}{:8.6}{:8.6}".format(word.Key, x, y), "hello"
+
+
+class CLexicon:
+    def __init__(self):
+        self.WordList = CWordList()
+        self.WordCounts = dict()
+
+        self.Signatures = dict()
+        self.SignatureToStems = {}
+        self.WordToSig = {}
+        self.StemToWord = {}
+        self.StemToAffix = {}
+        self.StemCounts = {}
+        self.StemToSig = {}
+        self.MinimumStemsInaSignature = 3
+        self.MinimumStemLength = 5
+        self.NumberOfAnalyzedWords = 0
+
+        self.LettersInAnalyzedWords = 0
+        self.NumberOfUnanalyzedWords = 0
+        self.LettersInUnanalyzedWords = 0
+        self.TotalLetterCountInWords = 0
+        self.LettersInStems = 0
+        self.AffixLettersInSignatures = 0
+
+        self.TotalRobustInSignatures = 0
+
+    def PrintWordList(self, outfile):
+        self.WordList.PrintXY(outfile)
+
+
+class Word:
+    def __init__(self, key):
+        self.Key = key
+        self.leftindex = -1
+        self.rightindex = -1
+
+
+def byWordKey(word):
+    return word.Key
+
+
+class CSignature:
+    count = 0
+
+    def __init__(self):
+        self.Index = 0
+        self.Affixes = tuple()
+        self.StartStateIndex = CSignature.count
+        self.MiddleStateIndex = CSignature.Count + 1
+        self.EndStateIndex = CSignature.count + 2
+        CSignature.count += 3
+
+    def Display(self):
+        returnstring = ""
+        affixes = list(self.Affixes)
+        affixes.sort()
+        return "-".join(affixes)
+
+        # ------------------------------------------------------------------------------------------##------------------------------------------------------------------------------------------#
+
+
+class parseChunk:
+    def __init__(self, thismorph, rString, thisedge=None):
+        # print "in parsechunk constructor, with ", thismorph, "being passed in "
+        self.morph = thismorph
+        self.edge = thisedge
+        self.remainingString = rString
+        if (self.edge):
+            self.fromState = self.edge.fromState
+            self.toState = self.edge.toState
+        else:
+            self.fromState = None
+            self.toState = None
+            # print self.morph, "that's the morph"
+            # print self.remainingString, "that's the remainder"
+
+    def Copy(self, otherChunk):
+        self.morph = otherChunk.morph
+        self.edge = otherChunk.edge
+        self.remainingString = otherChunk.remainingString
+
+    def Print(self):
+        returnstring = "morph: " + self.morph
+        if self.remainingString == "":
+            returnstring += ", no remaining string",
+        else:
+            returnstring += "remaining string is " + self.remainingString
+        if self.edge:
+            return "-(" + str(self.fromState.index) + ")" + self.morph + "(" + str(
+                self.toState.index) + ") -" + "remains:" + returnstring
+        else:
+            return returnstring + "!" + self.morph + "no edge on this parsechunk"
+
+
+            # ----------------------------------------------------------------------------------------------------------------------------#
+
+
+class ParseChain:
+    def __init__(self):
+        self.my_chain = list()
+
+    def Copy(self, other):
+        for parsechunk in other.my_chain:
+            newparsechunk = parseChunk(parsechunk.morph, parsechunk.remainingString, parsechunk.edge)
+            self.my_chain.append(newparsechunk)
+
+    def Append(self, parseChunk):
+        # print "Inside ParseChain Append"
+        self.my_chain.append(parseChunk)
+
+    def Print(self, outfile):
+        returnstring = ""
+        columnwidth = 30
+        for i in range(len(self.my_chain)):
+            chunk = self.my_chain[i]
+            this_string = chunk.morph + "-"
+            if chunk.edge:
+                this_string += str(chunk.edge.toState.index) + "-"
+            returnstring += this_string + " " * (columnwidth - len(this_string))
+        print >> outfile, returnstring,
+        print >> outfile
+
+    def Display(self):
+        returnstring = ""
+        for i in range(len(self.my_chain)):
+            chunk = self.my_chain[i]
+            returnstring += chunk.morph + "-"
+            if chunk.edge:
+                returnstring += str(chunk.edge.toState.index) + "-"
+        return returnstring
+
+        # ----------------------------------------------------------------------------------------------------------------------------#

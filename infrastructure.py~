@@ -1,0 +1,453 @@
+# -*- coding: <utf-16> -*- 
+unicode = True
+import codecs
+import pygraphviz as pgv
+
+
+ 
+
+import time
+import datetime
+import operator
+import sys
+import os
+import codecs # for utf8
+import string
+import copy
+from collections import defaultdict
+from lxa_module import *
+
+ 
+#language = "french"
+language = "english"
+ 
+
+
+outfolder = ""  # if outfolder is null, linguistica will use the infolder for the output as well.					 
+g_encoding =  "asci"  # "utf8"
+ 
+infolder = '../../data/' + language + '/'	
+infilename = infolder + smallfilename + "_" +  "Kwords" + ".txt"
+
+
+if len(sys.argv) > 1:
+	print sys.argv[1]
+	infilename = sys.argv[1] 
+if not os.path.isfile(infilename):
+	print "Warning: ", infilename, " does not exist."
+if g_encoding == "utf8":
+	infile = codecs.open(infilename, g_encoding = 'utf-8')
+else:
+	infile = open(infilename) 
+
+print "Data file: ", infilename
+
+#---------------------------------------------------------# 
+if len(outfolder) == 0:
+	outfolder = infolder 
+# ------------------- New -----------------------------------------------------------------------------------
+filename = language + "_"  + str(size) + "Kwords_" + side + "_extendedsigs"
+outfilename = decorateFilenameWithIteration (filename, outfolder, ".txt")
+
+outfile_Signatures_name = language + "_Signatures.txt"  
+
+if g_encoding == "utf8":
+	outfile = codecs.open(outfilename, encoding =  "utf-8", mode = 'w',)
+	print "yes utf8"
+else:
+	outfile = open(outfilename,mode='w') 
+	Signatures_outfile = open (outfile_Signatures_name, mode = 'w')
+
+outfile= open (outfilename,"w")
+
+outfilename = language + "_" + str(size) + "Kwords_" + side + "sigtransforms" 
+outfileSigTransformsname = decorateFilenameWithIteration( outfilename, outfolder, ".txt")
+
+
+# ------------------- end of New -----------------------------------------------------------------------------------
+#outfileSigTransforms = open(outfileSigTransformsname, "w" )
+#----------------------------------------------------------#
+
+filelines= infile.readlines()
+WordCounts={}
+ 
+for line in filelines:
+	pieces = line.split(' ')	 
+	word=pieces[0] 	
+	if word == '#':
+		continue
+	word = word.lower()		 
+	if (len(pieces)>1):
+		WordCounts[word] = int( pieces[1] )
+	else:
+		WordCounts[word]=1
+
+
+wordlist = WordCounts.keys()
+wordlist.sort()
+#-------------------------------------------------------------------------------------------------------# 
+#-------------------------------------------------------------------------------------------------------#
+# 					Main part of program		   			   	#
+#-------------------------------------------------------------------------------------------------------#
+#-------------------------------------------------------------------------------------------------------#
+
+SigToTuple		= {}		# key: bisig     value: ( stem, word1, word2, bisig )
+Signatures 		= {}
+WordToSig		= {}
+StemToWord 		= {}
+StemCounts		= {}
+StemToSig 		= {}
+numberofwords 	= len(wordlist)
+ 
+#--------------------------------------------------#
+# 		Read files					   			   #
+#--------------------------------------------------# 
+ 
+stemfilename = infolder + language + "_" + str(size) + "Kwords_" + side + "_stems" + ".txt"
+StemFileExistsFlag	= False
+if os.path.isfile(stemfilename):
+	print "stem file is named: ", stemfilename
+	print "stem file found"
+	StemFileExistsFlag = True
+	stemfile=open(stemfilename)
+	filelines = stemfile.readlines()
+	for line in filelines:		
+		pieces=line.split()
+		stem = pieces[0]			 
+		StemCounts[stem] = 1 #  pieces[1]	
+		StemToWord[stem] = set()
+		for i in range (2, len(pieces)):
+			word = pieces[i]
+			#if not FindSuffixesFlag:
+			#	word = word[::-1]
+			StemToWord[stem].add(word)		
+else:
+	print "stem file not found"
+	SigToTuple = MakeBiSignatures(wordlist, SigToTuple, FindSuffixesFlag)
+	for sig in SigToTuple.keys():
+		if len( SigToTuple[sig] ) < MinimumNumberofSigUses:		 
+			del SigToTuple[sig]
+		else:		 
+			for stem, word1, word2, bisigstring in SigToTuple[sig]:				
+				if not stem in StemToWord:
+					StemToWord[stem] = set()
+				StemToWord[stem].add(word1)
+				StemToWord[stem].add(word2)		 
+	print "Completed filtering out pairs used only a few times."
+
+for stem in StemToWord:
+	StemCounts[stem] = 0
+	for word in StemToWord[stem]:
+		StemCounts[stem]+= WordCounts[word]
+
+if (not StemFileExistsFlag): # we use this to create a one-time list of stems with their words
+	if g_encoding == "utf8":
+		outfile2 = codecs.open(stemfilename,encoding="utf-8",mode="w")
+	else:
+		outfile2= open (stemfilename,"w")
+
+	for stem in StemToWord.keys():			 
+		print >>outfile2, stem,	StemCounts[stem],	 
+		for word in StemToWord[stem]:
+			print >>outfile2, word,
+		print >>outfile2
+
+#-----------------------------------------------------------------------------------------------------------------#	
+#	1. Make signatures, and WordToSig dictionary, and Signature dictionary-of-stem-lists, and StemToSig dictionary
+#-----------------------------------------------------------------------------------------------------------------#	
+print "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+print "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+print "1. Make signatures 1" 
+print "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+print "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+#---------------------------------------------------------------------------------#	
+#	1a. Declare a linguistica-style FSA
+#---------------------------------------------------------------------------------#
+
+morphology= FSA_lxa()
+
+#---------------------------------------------------------------------------------#	
+#	1b. Find signatures, and put them in the FSA also.
+#---------------------------------------------------------------------------------# 
+
+StemToWord, Signatures, WordToSig, StemToSig =  MakeSignatures_1(StemToWord, StemToSig, FindSuffixesFlag, morphology, outfile) 
+
+#---------------------------------------------------------------------------------#	
+#	1c. Print the FSA to file.
+#---------------------------------------------------------------------------------#  
+
+morphology.printFSA(outfile) 
+
+print >>outfile, "_________________ \n End of Make Signatures."
+  
+#-------------- Added Sept 24 for Jackson's program -----------------------------#
+printSignatures(Signatures, WordToSig, StemCounts, Signatures_outfile, g_encoding, FindSuffixesFlag)
+
+ 
+#-------------------------------------------------------------------------------------------------------------------------------------#	
+# 5. Look to see which signatures could be improved, and score the improvement quantitatively with robustness.
+# Then we improve the one whose robustness increase is the greatest.
+#-------------------------------------------------------------------------------------------------------------------------------------#	
+
+print >>outfile, "***"
+print >>outfile, "*** 5. Finding robust suffixes in stem sets\n\n"
+print "5a. Finding robust suffixes in stem sets"
+
+#print "before 5a" 
+
+#---------------------------------------------------------------------------------#	
+#	5a. Loop: how many times? NumberOfCorrections
+#---------------------------------------------------------------------------------# 
+
+for loopno in range( NumberOfCorrections):
+	#-------------------------------------------------------------------------#	
+	#	5b. For each edge, find best peripheral piece that might be 
+	#           a separate morpheme.
+	#-------------------------------------------------------------------------# 	
+	#print " loop number" , loopno 
+	morphology.find_highest_weight_affix_in_an_edge ( outfile, FindSuffixesFlag)
+#print "end of 5b" 
+#---------------------------------------------------------------------------------#	
+#	5c. Print graphics based on each state.
+#---------------------------------------------------------------------------------# 
+if True:
+	for state in morphology.States:	
+		graph = morphology.createPySubgraph(state) 	
+	 	if len(graph.edges()) < 4:
+	 		continue
+		graph.layout(prog='dot')
+		filename = infolder + 'morphology' + str(state.index) + '.png'
+		graph.draw(filename) 
+	 
+ 	
+#---------------------------------------------------------------------------------#	
+#	5d. Print FSA again, with these changes.
+#---------------------------------------------------------------------------------# 
+
+if True:
+	morphology.printFSA(outfile)
+ 
+ 
+ 
+ 
+ 
+#------------------------------------------------------------------------------------------#
+class parseChunk:
+	def __init__(self, morph, rString, edge= None):
+		self.morph 		= morph
+		self.edge 		= edge
+		self.remainingString 	= rString
+		if (edge):
+			self.fromState = self.edge.fromState
+			self.toState   = self.edge.toState
+		else:
+			self.fromState = None
+			self.toState = None
+	def Copy (self, otherChunk):
+		self.morph 		= otherChunk.morph
+		self.edge 		= otherChunk.edge
+		self.remainingString 	= otherChunk.remainingString
+ 
+ 
+
+
+
+ 
+#------------------------------------------------------------------------------------------#
+localtime1 = time.asctime( time.localtime(time.time()) )
+print "Local current time :", localtime1
+
+morphology.dictOfLists_parses = morphology.parseWords(wordlist)
+
+localtime2 = time.asctime( time.localtime(time.time()) )
+#print "Time to parse all words: ", localtime2 - localtime1
+
+
+#------------------------------------------------------------------------------------------#
+
+ 
+print >>outfile, "Finding common stems across edges."
+HowManyTimesToCollapseEdges = 9
+for loop in range(HowManyTimesToCollapseEdges): 
+ 	print "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+	print  "Loop number", loop
+ 	print "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+	(commonEdgePairs,  EdgeToEdgeCommonMorphs) = morphology.findCommonStems()
+ 
+	if len( commonEdgePairs ) == 0:
+		print "There are no more pairs of edges to consider."
+		break
+	edge1, edge2 = commonEdgePairs[0]
+	state1 = edge1.fromState
+	state2 = edge2.fromState
+	state3 = edge1.toState
+	state4 = edge2.toState
+	print "\n\nWe are considering merging edge ", edge1.index,"(", edge1.fromState.index, "->", edge1.toState.index, ") and  edge", edge2.index, "(", edge2.fromState.index, "->", edge2.toState.index , ")"
+	 
+	print "Printed graph", str(loop), "before_merger"
+	graph = morphology.createDoublePySubgraph(state1,state2) 	
+	graph.layout(prog='dot')
+	filename = infolder + str(loop) + '_before_merger' + str(state1.index) + "-" + str(state2.index) + '.png'
+	graph.draw(filename) 
+
+	if state1 == state2:
+		print "The from-States are identical"
+		state_changed_1 = state1
+		state_changed_2 = state2
+		morphology.mergeTwoStatesCommonMother(state3,state4)
+		morphology.EdgePairsToIgnore.append((edge1, edge2))
+
+	elif state3 == state4:
+		print "The to-States are identical"
+		state_changed_1 = state3
+		state_changed_2 = state4	 
+		morphology.mergeTwoStatesCommonDaughter(state1,state2) 
+		morphology.EdgePairsToIgnore.append((edge1, edge2))
+
+	elif morphology.mergeTwoStatesCommonMother(state1,state2):
+		print "Now we have merged two sister edges from line 374 **********"
+		state_changed_1 = state1
+		state_changed_2 = state2
+		morphology.EdgePairsToIgnore.append(edge1, edge2)
+
+	
+	elif   morphology.mergeTwoStatesCommonDaughter((state3,state4))  : 
+		print "Now we have merged two daughter edges from line 377 **********"
+		state_changed_1 = state3
+		state_changed_2 = state4
+		morphology.EdgePairsToIgnore.append((edge1, edge2))
+		 
+	else: print  "problem line 404" 
+	graph = morphology.createPySubgraph(state1) 	
+	graph.layout(prog='dot')
+	filename = infolder + str(loop) +  '_after_merger_' + str(state_changed_1.index) +  "-" + str(state_changed_2.index) + '.png'
+	print "Printed graph", str(loop), "after_merger"
+	graph.draw(filename) 
+ 
+#-----------------------------------------------------------# 
+
+#------------------------------------------------------------------------------------------#
+#------------------------------------------------------------------------------------------#
+#		User inquiries about morphology
+#------------------------------------------------------------------------------------------#
+#------------------------------------------------------------------------------------------#
+
+morphology_copy = morphology.MakeCopy()
+
+
+initialParseChain = list()
+CompletedParses = list()
+IncompleteParses = list()
+word = "" 
+while True:
+	word = raw_input('Inquiry about a word: ')
+	if word == "exit":
+		break
+	if word == "State":
+		while True:
+			stateno = raw_input("State number:")
+			if stateno == "" or stateno == "exit":
+				break
+			stateno = int(stateno)	
+			for state in morphology.States:
+				if state.index == stateno:
+					break	
+			state = morphology.States[stateno]
+			for edge in state.getOutgoingEdges():
+				print "Edge number", edge.index 
+				i = 0
+				for morph in edge.labels:
+					print "%12s" % morph,
+					i+=1
+					if i%6 == 0: print 
+			print "\n\n"		
+			continue
+	if word == "Edge":
+		while True:
+			edgeno = raw_input("Edge number:")
+			if edgeno == "" or edgeno == "exit":
+				break
+			edgeno = int(edgeno)
+			for edge in morphology.Edges:
+				if edge.index == edgeno:
+					break
+			print "From state", morphology.Edges[edgeno].fromState.index, "To state", morphology.Edges[edgeno].toState.index
+			for edge in morphology.Edges:
+				if edge.index == int(edgeno):
+					morphlist = list(edge.labels)
+			for i in range(len( morphlist )):
+				print "%12s" % morphlist[i],
+				if i%6 == 0:
+					print	
+			print "\n\n"
+			continue
+	if word == "graph":
+		while True:
+			stateno = raw_input("Graph state number:")
+			
+	del CompletedParses[:]
+	del IncompleteParses[:]
+	del initialParseChain[:]
+	startingParseChunk = parseChunk("", word)
+	startingParseChunk.toState = morphology.startState
+
+	initialParseChain.append(startingParseChunk)
+	IncompleteParses.append(initialParseChain)
+	while len(IncompleteParses) > 0 :
+		CompletedParses, IncompleteParses = morphology.lparse(CompletedParses, IncompleteParses)
+	if len(CompletedParses) == 0: print "no analysis found." 
+	 
+	for parseChain in CompletedParses:
+		for thisParseChunk in  parseChain:			
+			if (thisParseChunk.edge):				 
+				print "\t",thisParseChunk.morph,  
+		print 
+	print
+
+	for parseChain in CompletedParses:
+		print "\tStates: ",
+		for thisParseChunk in  parseChain:			
+			if (thisParseChunk.edge):				 
+				print "\t",thisParseChunk.fromState.index, 
+		print "\t",thisParseChunk.toState.index 	 
+	print 
+
+	for parseChain in CompletedParses:
+		print "\tEdges: ",
+		for thisParseChunk in  parseChain:			
+			if (thisParseChunk.edge):				 
+				print "\t",thisParseChunk.edge.index,
+		print
+	print "\n\n"
+
+
+
+#---------------------------------------------------------------------------------------------------------------------------#
+# We create a list of words, each word with its signature transform (so DOGS is turned into NULL.s_s, for example)
+
+if False:
+	printWordsToSigTransforms(Signatures, WordToSig, StemCounts, outfileSigTransforms, g_encoding, FindSuffixesFlag)
+ 
+
+#---------------------------------------------------------------------------------------------------------------------------#  
+  
+outfile.close()
+#print outfilename 
+	
+
+
+ 
+
+#--------------------------------------------------#
+#  Logging information
+localtime = time.asctime( time.localtime(time.time()) )
+print "Local current time :", localtime
+
+numberofwords = len(wordlist)
+logfilename = outfolder + "logfile.txt"
+logfile = open (logfilename,"a")
+
+print >>logfile,  outfilename.ljust(60), '%30s wordcount: %8d data source:' %(localtime, numberofwords ), infilename.ljust(50) 
+
+#--------------------------------------------------#
+
